@@ -1,19 +1,17 @@
 import sys
 import pyautogui
-from time import sleep, time
+from time import sleep
 
-import keyboard as mainkey
-from pynput.keyboard import Key, Listener
-from pynput import keyboard as pyKeyboard
 from global_hotkeys import *
 from enum import Enum
 
 # Gui
 from gui import GUI_Pokebot
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtWidgets
 
 
 class Manager():
+    confidence = 0.9
     class GameHotkeys(Enum):
         # Button layout
         FIGHT = 1
@@ -34,6 +32,11 @@ class Manager():
         "battle_title": "assets/battle_request_title.png",
         "decline_button": "assets/decline_button.png",
         "poke_ball": "assets/pokemon_present.png",
+        "elite": "assets/elite.png",
+        "shiny": {
+            "shiny_plain": "assets/shiny.png",
+            "shiny_cave": "assets/shiny2.png",
+        },
     }
 
     def __init__(self, *args, **kwargs) -> None:
@@ -119,16 +122,16 @@ class Movement(Manager):
         pyautogui.press(f'{move.value}')
 
     def run_away(self):
-        pass
+        pyautogui.press(f'{self.GameHotkeys.RUN.value}')
 
     def handle_trade_request(self):
         if not self.reject_trade_is_checked:
             return False
 
         trade_title_coords = pyautogui.locateOnScreen(
-            self.images["trade_title"], confidence=0.9)
+            self.images["trade_title"], confidence=self.confidence)
         decline_button_coords = pyautogui.locateOnScreen(
-            self.images["decline_button"], confidence=0.9)
+            self.images["decline_button"], confidence=self.confidence)
 
         # There never was a trade request.
         if not trade_title_coords or not decline_button_coords:
@@ -142,9 +145,9 @@ class Movement(Manager):
             return False
 
         battle_title_coords = pyautogui.locateOnScreen(
-            self.images["battle_title"], confidence=0.9)
+            self.images["battle_title"], confidence=self.confidence)
         decline_button_coords = pyautogui.locateOnScreen(
-            self.images["decline_button"], confidence=0.9)
+            self.images["decline_button"], confidence=self.confidence)
 
         # There never was a trade request.
         if not battle_title_coords or not decline_button_coords:
@@ -167,17 +170,29 @@ class Movement(Manager):
             return False
 
         poke_ball_coords = pyautogui.locateOnScreen(
-            self.images["poke_ball"], confidence=0.9)
+            self.images["poke_ball"], confidence=self.confidence)
 
         return poke_ball_coords == None
 
     def is_elite_pokemon(self):
+        """Returns `True` if a elite pokemon is found on screen."""
         if not self.elite_run_is_checked:
             return False
+        elite_coords = pyautogui.locateOnScreen(
+            self.images["elite"], confidence=self.confidence)
+
+        return elite_coords != None
 
     def is_shiny_pokemon(self):
         if not self.shiny_stop_is_checked:
             return False
+        # We check the cave v
+        for path in self.images["shiny"].values():
+            shiny_coords = pyautogui.locateOnScreen(
+                path, confidence=self.confidence)
+            if shiny_coords != None:
+                return True
+        return False
 
     def afk(self,):
         iterations = 1
@@ -201,12 +216,12 @@ class Movement(Manager):
                     self.set_idle()
                     return
                 elif self.is_elite_pokemon():
-                    # TODO run from pokemon function
-                    self.set_idle()
+                    self.run_away()
                     return
                 elif self.is_shiny_pokemon():
                     self.set_idle()
                     return
+                sleep(0.1)
                 self.attack(self.GameHotkeys.SECOND_MOVE)
                 sleep(2)
             iterations += 1
@@ -216,8 +231,6 @@ class Movement(Manager):
 def main(*args, **kwargs):
     move = kwargs["move"]
     while True:
-        # Blocks until you press del.
-
         move.afk()
 
 
