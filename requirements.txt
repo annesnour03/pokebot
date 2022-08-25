@@ -1,0 +1,5 @@
+global_hotkeys==0.0.4
+keyboard==0.13.5
+PyAutoGUI==0.9.53
+pynput==1.7.6
+PyQt5==5.15.7
